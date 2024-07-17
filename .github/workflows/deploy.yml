@@ -43,11 +43,12 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
+        VERSION_LABEL=service1-version-$(date +%s)
         aws elasticbeanstalk create-application-version \
           --application-name MicroservicesApp \
-          --version-label service1-version \
+          --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label service1-version
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $VERSION_LABEL
 
     - name: Deploy service2 to Elastic Beanstalk
       env:
@@ -55,8 +56,9 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
+        VERSION_LABEL=service2-version-$(date +%s)
         aws elasticbeanstalk create-application-version \
           --application-name MicroservicesApp \
-          --version-label service2-version \
+          --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label service2-version
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $VERSION_LABEL
