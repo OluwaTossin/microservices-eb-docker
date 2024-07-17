@@ -37,12 +37,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Deploy to Elastic Beanstalk
+    - name: Deploy service1 to Elastic Beanstalk
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        aws elasticbeanstalk create-application-version --application-name MicroservicesApp --version-label new-version --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label new-version
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-3 --version-label new-version
+        aws elasticbeanstalk create-application-version \
+          --application-name MicroservicesApp \
+          --version-label service1-version \
+          --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label service1-version
+
+    - name: Deploy service2 to Elastic Beanstalk
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+      run: |
+        aws elasticbeanstalk create-application-version \
+          --application-name MicroservicesApp \
+          --version-label service2-version \
+          --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-3 --version-label service2-version
