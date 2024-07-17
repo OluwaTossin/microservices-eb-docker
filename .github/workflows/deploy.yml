@@ -48,8 +48,8 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
-        echo "Sleeping for 120 seconds to allow the application version to process"
-        sleep 120
+        echo "Sleeping for 180 seconds to allow the application version to process"
+        sleep 180
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $VERSION_LABEL
 
     - name: Deploy service2 to Elastic Beanstalk
@@ -63,6 +63,6 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
-        echo "Sleeping for 120 seconds to allow the application version to process"
-        sleep 120
+        echo "Sleeping for 180 seconds to allow the application version to process"
+        sleep 180
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $VERSION_LABEL
