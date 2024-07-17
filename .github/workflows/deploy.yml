@@ -52,11 +52,11 @@ jobs:
         # Wait until the application version is processed
         for attempt in {1..30}; do
           STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
-          if [ "$STATUS" == "PROCESSED" ]; then
+          echo "Attempt $attempt: Application version status is $STATUS"
+          if [ "$STATUS" == "Processed" ]; then
             break
           fi
-          echo "Waiting for application version to be processed..."
-          sleep 10
+          sleep 20
         done
 
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $VERSION_LABEL
@@ -76,11 +76,11 @@ jobs:
         # Wait until the application version is processed
         for attempt in {1..30}; do
           STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
-          if [ "$STATUS" == "PROCESSED" ]; then
+          echo "Attempt $attempt: Application version status is $STATUS"
+          if [ "$STATUS" == "Processed" ]; then
             break
           fi
-          echo "Waiting for application version to be processed..."
-          sleep 10
+          sleep 20
         done
 
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $VERSION_LABEL
