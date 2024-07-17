@@ -29,9 +29,88 @@ jobs:
         docker push tjesctacy/service1:latest
         docker push tjesctacy/service2:latest
 
-  deploy:
+  create_application_versions:
     needs: build
     runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Create application version for service1
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+      run: |
+        VERSION_LABEL=service1-version-$(date +%s)
+        echo "SERVICE1_VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+        aws elasticbeanstalk create-application-version \
+          --application-name MicroservicesApp \
+          --version-label $VERSION_LABEL \
+          --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
+        sleep 60
+
+    - name: Create application version for service2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+      run: |
+        VERSION_LABEL=service2-version-$(date +%s)
+        echo "SERVICE2_VERSION_LABEL=$VERSION_LABEL" >> $GITHUB_ENV
+        aws elasticbeanstalk create-application-version \
+          --application-name MicroservicesApp \
+          --version-label $VERSION_LABEL \
+          --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
+        sleep 60
+
+  confirm_application_versions:
+    needs: create_application_versions
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Confirm application version for service1
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+      run: |
+        VERSION_LABEL=$SERVICE1_VERSION_LABEL
+        for attempt in {1..30}; do
+          STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
+          echo "Attempt $attempt: Application version status for service1 is $STATUS"
+          if [ "$STATUS" == "Processed" ]; then
+            echo "SERVICE1_VERSION_PROCESSED=true" >> $GITHUB_ENV
+            break
+          fi
+          sleep 20
+        done
+
+    - name: Confirm application version for service2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: 'us-east-1'
+      run: |
+        VERSION_LABEL=$SERVICE2_VERSION_LABEL
+        for attempt in {1..30}; do
+          STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
+          echo "Attempt $attempt: Application version status for service2 is $STATUS"
+          if [ "$STATUS" == "Processed" ]; then
+            echo "SERVICE2_VERSION_PROCESSED=true" >> $GITHUB_ENV
+            break
+          fi
+          sleep 20
+        done
+
+  deploy:
+    needs: confirm_application_versions
+    runs-on: ubuntu-latest
+    if: env.SERVICE1_VERSION_PROCESSED == 'true' && env.SERVICE2_VERSION_PROCESSED == 'true'
 
     steps:
     - name: Checkout code
@@ -43,23 +122,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        VERSION_LABEL=service1-version-$(date +%s)
-        aws elasticbeanstalk create-application-version \
-          --application-name MicroservicesApp \
-          --version-label $VERSION_LABEL \
-          --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
-
-        # Wait until the application version is processed
-        for attempt in {1..30}; do
-          STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
-          echo "Attempt $attempt: Application version status is $STATUS"
-          if [ "$STATUS" == "Processed" ]; then
-            break
-          fi
-          sleep 20
-        done
-
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $VERSION_LABEL
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $SERVICE1_VERSION_LABEL
 
     - name: Deploy service2 to Elastic Beanstalk
       env:
@@ -67,20 +130,4 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        VERSION_LABEL=service2-version-$(date +%s)
-        aws elasticbeanstalk create-application-version \
-          --application-name MicroservicesApp \
-          --version-label $VERSION_LABEL \
-          --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
-
-        # Wait until the application version is processed
-        for attempt in {1..30}; do
-          STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
-          echo "Attempt $attempt: Application version status is $STATUS"
-          if [ "$STATUS" == "Processed" ]; then
-            break
-          fi
-          sleep 20
-        done
-
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $VERSION_LABEL
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $SERVICE2_VERSION_LABEL
