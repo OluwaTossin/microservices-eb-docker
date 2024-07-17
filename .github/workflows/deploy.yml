@@ -43,5 +43,5 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name Service1Env --version-label new-version
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name Service2Env --version-label new-version
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label new-version
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-3 --version-label new-version
