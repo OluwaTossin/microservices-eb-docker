@@ -59,4 +59,4 @@ jobs:
           --application-name MicroservicesApp \
           --version-label service2-version \
           --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-3 --version-label service2-version
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label service2-version
