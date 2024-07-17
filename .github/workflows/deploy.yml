@@ -43,5 +43,6 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
+        aws elasticbeanstalk create-application-version --application-name MicroservicesApp --version-label new-version --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label new-version
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-3 --version-label new-version
