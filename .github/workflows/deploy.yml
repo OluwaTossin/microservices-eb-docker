@@ -48,6 +48,7 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
+        sleep 60
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $VERSION_LABEL
 
     - name: Deploy service2 to Elastic Beanstalk
@@ -61,4 +62,5 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
+        sleep 60
         aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $VERSION_LABEL
