@@ -38,6 +38,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Create application version for service1
+      id: create_service1_version
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -49,9 +50,10 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service1.zip"
-        sleep 60
+        echo "::set-output name=service1_version::$VERSION_LABEL"
 
     - name: Create application version for service2
+      id: create_service2_version
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -63,45 +65,50 @@ jobs:
           --application-name MicroservicesApp \
           --version-label $VERSION_LABEL \
           --source-bundle S3Bucket="service1zip",S3Key="service2.zip"
-        sleep 60
+        echo "::set-output name=service2_version::$VERSION_LABEL"
 
   confirm_application_versions:
     needs: create_application_versions
     runs-on: ubuntu-latest
+    outputs:
+      service1_version_processed: ${{ steps.confirm_service1_version.outputs.service1_version_processed }}
+      service2_version_processed: ${{ steps.confirm_service2_version.outputs.service2_version_processed }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Confirm application version for service1
+      id: confirm_service1_version
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        VERSION_LABEL=$SERVICE1_VERSION_LABEL
+        VERSION_LABEL=${{ needs.create_application_versions.outputs.service1_version }}
         for attempt in {1..30}; do
           STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
           echo "Attempt $attempt: Application version status for service1 is $STATUS"
           if [ "$STATUS" == "Processed" ]; then
-            echo "SERVICE1_VERSION_PROCESSED=true" >> $GITHUB_ENV
+            echo "::set-output name=service1_version_processed::true"
             break
           fi
           sleep 20
         done
 
     - name: Confirm application version for service2
+      id: confirm_service2_version
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        VERSION_LABEL=$SERVICE2_VERSION_LABEL
+        VERSION_LABEL=${{ needs.create_application_versions.outputs.service2_version }}
         for attempt in {1..30}; do
           STATUS=$(aws elasticbeanstalk describe-application-versions --application-name MicroservicesApp --version-labels $VERSION_LABEL --query 'ApplicationVersions[0].Status' --output text)
           echo "Attempt $attempt: Application version status for service2 is $STATUS"
           if [ "$STATUS" == "Processed" ]; then
-            echo "SERVICE2_VERSION_PROCESSED=true" >> $GITHUB_ENV
+            echo "::set-output name=service2_version_processed::true"
             break
           fi
           sleep 20
@@ -110,7 +117,7 @@ jobs:
   deploy:
     needs: confirm_application_versions
     runs-on: ubuntu-latest
-    if: env.SERVICE1_VERSION_PROCESSED == 'true' && env.SERVICE2_VERSION_PROCESSED == 'true'
+    if: needs.confirm_application_versions.outputs.service1_version_processed == 'true' && needs.confirm_application_versions.outputs.service2_version_processed == 'true'
 
     steps:
     - name: Checkout code
@@ -122,7 +129,7 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label $SERVICE1_VERSION_LABEL
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp-env-2 --version-label ${{ needs.create_application_versions.outputs.service1_version }}
 
     - name: Deploy service2 to Elastic Beanstalk
       env:
@@ -130,4 +137,4 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: 'us-east-1'
       run: |
-        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label $SERVICE2_VERSION_LABEL
+        aws elasticbeanstalk update-environment --application-name MicroservicesApp --environment-name MicroservicesApp3-env --version-label ${{ needs.create_application_versions.outputs.service2_version }}
